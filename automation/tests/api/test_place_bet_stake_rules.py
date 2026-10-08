@@ -45,15 +45,8 @@ STAKE_CASES = [
 def test_place_bet_enforces_stake_rules(
     api: BettingApiClient, upcoming_match: Match, starting_balance: Decimal, case: StakeCase
 ) -> None:
-    """Stake rules (spec 4.1) must be enforced by the API, not only by the UI.
-
-    Why this test: stake limits and the balance check are the financial guard rails of the
-    product. The UI can be bypassed by calling the API directly, so the backend is the real
-    enforcement point. Boundaries (0.99 / 1.00 / 100.00 / 100.01) are where off-by-one and
-    float bugs live. API-level checks run in milliseconds, need no browser, and are stable,
-    so they can cover many cases cheaply. Every case also verifies the persisted balance,
-    because a rejected bet must never move money and an accepted one must move exactly the stake.
-    """
+    """Stake limits and the balance check protect money, and the UI can be bypassed,
+    so the API must enforce them (spec 4.1). Fast and stable, so it covers many boundaries."""
     selection = Selection.HOME
     if case.spend_before is not None:
         api.place_bet(upcoming_match.id, selection, float(case.spend_before)).raise_for_status()

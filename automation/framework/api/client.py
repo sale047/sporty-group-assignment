@@ -1,10 +1,3 @@
-"""Thin wrapper around the betting API.
-
-Endpoint methods return the raw `requests.Response` so tests own their assertions
-(status codes and error bodies are often the thing under test). The `fetch_*`
-helpers are for setup/verification steps and fail fast on unexpected responses.
-"""
-
 from decimal import Decimal
 from typing import Any
 
@@ -15,6 +8,8 @@ from framework.utils.money import to_money
 
 
 class BettingApiClient:
+    """Endpoint methods return the raw response; `fetch_*` helpers raise on errors."""
+
     def __init__(self, base_url: str, user_id: str, timeout: float) -> None:
         self._base_url = base_url
         self._timeout = timeout

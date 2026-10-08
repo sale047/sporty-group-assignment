@@ -2,7 +2,7 @@ from typing import Any
 
 
 class SoftAssertions:
-    """Collects failed checks and raises once, so a single E2E run reports every broken expectation."""
+    """Collects failed checks and raises them together in assert_all()."""
 
     def __init__(self) -> None:
         self._failures: list[str] = []

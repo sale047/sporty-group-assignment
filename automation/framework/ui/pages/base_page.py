@@ -1,5 +1,3 @@
-"""Shared Selenium helpers. Only explicit waits are used (implicit wait is 0)."""
-
 from typing import Callable, TypeVar
 
 from selenium.webdriver.remote.webdriver import WebDriver

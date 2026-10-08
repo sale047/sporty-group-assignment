@@ -5,7 +5,6 @@ WINDOW_SIZE = "1440,1000"
 
 
 def create_chrome_driver(headless: bool) -> WebDriver:
-    """Local Chrome; Selenium Manager resolves a matching chromedriver automatically."""
     options = webdriver.ChromeOptions()
     options.add_argument(f"--window-size={WINDOW_SIZE}")
     options.add_argument("--disable-search-engine-choice-screen")

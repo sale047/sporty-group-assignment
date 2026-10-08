@@ -11,8 +11,6 @@ from framework.utils.money import parse_money
 
 
 class BettingPage(BasePage):
-    """The single-page sportsbook: header, match list, bet slip and result modals."""
-
     HEADER_BALANCE = (By.ID, "header-balance")
     MATCH_LIST = (By.ID, "match-list")
     SUCCESS_MODAL = (By.ID, "modal-success")
@@ -37,7 +35,7 @@ class BettingPage(BasePage):
         return self.bet_slip.wait_until_has_selection()
 
     def wait_for_receipt(self) -> ReceiptModal:
-        """Wait for the placement to resolve; fail fast with the error copy if it resolved to failure."""
+        """Raises if placement ends in the error modal."""
         self._wait_until(
             lambda driver: driver.find_elements(*self.SUCCESS_MODAL) or driver.find_elements(*self.ERROR_MODAL),
             "bet placement never resolved to a success or error modal",

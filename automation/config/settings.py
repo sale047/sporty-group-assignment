@@ -1,5 +1,3 @@
-"""Runtime configuration, overridable through environment variables."""
-
 import os
 from dataclasses import dataclass
 

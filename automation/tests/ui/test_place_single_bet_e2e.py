@@ -23,15 +23,8 @@ def test_place_single_bet_end_to_end(
     upcoming_match: Match,
     starting_balance: Decimal,
 ) -> None:
-    """A user places a EUR 10 home-win bet; everything shown must match what the backend recorded.
-
-    Why this test: this is the revenue-critical journey every customer takes, and it is the
-    only place where the UI, the bet slip maths, the placement lifecycle, the receipt and the
-    wallet all meet. A unit or API test cannot catch the UI showing a different payout, team
-    order or balance than the backend stored, and those mismatches are exactly what causes
-    customer disputes. Flow steps are hard assertions (nothing after them makes sense if they
-    fail). Post-placement consistency checks are soft, so one run reports every mismatch.
-    """
+    """Core revenue journey: slip, receipt and balance must match what the backend recorded.
+    Only an E2E test can catch the UI showing different values than the API stored."""
     selection = Selection.HOME
     stake = "10"
     odds = to_money(upcoming_match.odds[selection])

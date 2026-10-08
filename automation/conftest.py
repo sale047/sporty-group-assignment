@@ -29,7 +29,6 @@ def api(settings: Settings) -> Iterator[BettingApiClient]:
 
 @pytest.fixture(scope="session")
 def upcoming_match(api: BettingApiClient) -> Match:
-    """First upcoming match from the live catalog, so tests don't depend on hard-coded data."""
     upcoming = [match for match in api.fetch_matches() if match.is_upcoming()]
     if not upcoming:
         pytest.skip("The match catalog has no upcoming matches")
@@ -38,10 +37,7 @@ def upcoming_match(api: BettingApiClient) -> Match:
 
 @pytest.fixture
 def starting_balance(api: BettingApiClient) -> Decimal:
-    """Reset the shared test wallet and return the *persisted* balance.
-
-    The reset response is not trusted: it reports 125.50 while 120.00 is stored (BUG-09).
-    """
+    # The reset response can't be trusted (BUG-09), so read the stored balance instead.
     api.reset_balance().raise_for_status()
     return api.fetch_balance()
 
