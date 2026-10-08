@@ -60,28 +60,20 @@ Closing the receipt correctly returned to an empty slip ([tc01_after_close.png](
 
 ## Exploratory notes
 
-About 30 minutes, focused on the riskiest areas around placement: money handling, API contract, recovery path, and data the user relies on.
+Short checks around the placement flow, focused on money handling and the API contract.
 
-- **Error modal (TC-04, explored rather than formally executed): works as specified.** I made placement fail by blocking `/api/place-bet` through Chrome DevTools Protocol.
-  - The title "Something went wrong" and the explanatory body are shown ([tc04_error_modal.png](evidence/tc04_error_modal.png)).
-  - After unblocking, **Rebet** showed "Placing..." again and resulted in one success. The balance dropped from €120 to €115, so there was no double charge.
-  - **Close** and **X** both cleared the selection and stake.
-- **Concurrency:** 3 parallel `place-bet` requests returned one 200 and two 409 `bet_in_progress`, which is correct. Once, the user stayed locked with 409 for several seconds after the burst. I could not reproduce it reliably (2 parallel requests released the lock immediately), so it is recorded as an observation, not a bug.
-- **API negative cases that behaved correctly:**
-  - Missing or blank `x-user-id` returns 401 `missing_user_id`; an unknown user returns 401 `invalid_user_id`.
-  - Unknown, blank or missing `matchId` returns 422 `invalid_match` / `invalid_match_id`.
-  - `selection` of `home` (lowercase) or `WIN` returns 422 `invalid_selection`.
-  - A JSON array body returns 400.
-  - `PUT /api/place-bet`, `GET /api/reset-balance` and `POST /api/matches` return 405.
-- **Odds filter:** two boundary defects (BUG-11, BUG-12) and a counter defect (BUG-15).
-- **Stake input sanitizing is silent:** `1.2.3` becomes `1.23` and `1e2` becomes `12` without any feedback. This can make the user bet an amount they didn't type. It is low risk, because the stake and payout are visible before placing, but it is worth a UX decision.
-- **Bet ID and timestamp are generated in the browser.** `POST /api/place-bet` returns no bet ID, and the UI creates a random `#B-xxxxx` and stamps the time when the button is clicked, before the request is even sent. The Bet ID cannot be used for support or reconciliation. This is listed as a spec clarification in [NOTES.md](../NOTES.md).
+- **Error modal, Rebet and Close (TC-04): work as specified.** I forced a failure by blocking `/api/place-bet` in DevTools ([tc04_error_modal.png](evidence/tc04_error_modal.png)). Rebet ended in one success and one charge.
+- **Concurrency:** parallel `place-bet` requests return one 200 and 409 `bet_in_progress` for the rest, which is correct.
+- **Other API negative cases** (missing or unknown user, invalid `matchId` or `selection`, wrong method) return the documented 4xx errors, except BUG-13 and BUG-14.
+- **Stake input sanitizing is silent:** `1.2.3` becomes `1.23` and `1e2` becomes `12` without feedback. Low risk, because stake and payout are visible before placing, but worth a UX decision.
+- **Bet ID and timestamp are generated in the browser,** so the Bet ID can't be traced to a stored bet. Raised as a spec question in [NOTES.md](../NOTES.md).
+- **Odds filter:** BUG-11, BUG-12 and BUG-15.
 
 ---
 
 ## Bug reports
 
-Bugs are ordered by severity.
+Bugs are ordered by severity. BUG-01 to BUG-10 affect placement, money or the place-bet API and are written up in full. BUG-11 to BUG-16 are lower impact (filters, protocol edge cases, minor UX), so they are reported in [short form](#lower-impact-findings-bug-11-to-bug-16).
 
 | ID | Title | Severity |
 | --- | --- | --- |
@@ -213,58 +205,13 @@ Bugs are ordered by severity.
 - **Business impact:** Any consumer that trusts the response (app, wallet service, reporting) would label or convert amounts in the wrong currency.
 - **Evidence:** [api_evidence.txt](evidence/api_evidence.txt) (every `200 Bet placed successfully` line).
 
-### BUG-11 - Odds filter excludes matches whose odds equal the minimum bound
+### Lower-impact findings (BUG-11 to BUG-16)
 
-- **Severity:** Medium
-- **Reproduction steps:**
-  1. Open **Odds** filter, set Min `2.05`, Max `2.05`, and click Apply.
-  2. Repeat with Min `1.35`, Max `1.45`.
-- **Expected:** The bounds are inclusive (spec 2.6). Step 1 shows the 10 matches that have a 2.05 price. Step 2 shows the 3 matches with a price between 1.35 and 1.45, including PSG vs Marseille (1.35).
-- **Actual:** Step 1 shows 0 matches and step 2 shows 2 (PSG vs Marseille missing). A match whose odds equal the minimum is excluded.
-- **Business impact:** Users filtering for a price don't see matching markets, which loses bets.
-- **Evidence:** [tc06_odds_equal_bounds.png](evidence/tc06_odds_equal_bounds.png).
-
-### BUG-12 - Odds filter accepts an invalid range (min > max) without feedback
-
-- **Severity:** Medium
-- **Reproduction steps:** Open the **Odds** filter, set Min `3`, Max `2`, and click Apply.
-- **Expected:** The range is rejected with clear feedback (spec 2.6), for example "Min must be lower than or equal to Max", and it is not applied.
-- **Actual:** The filter is applied ("Odds: 3.00 - 2.00") and the match list goes blank, with no message or empty state.
-- **Business impact:** The user sees an empty sportsbook and may think there are no matches.
-- **Evidence:** [tc06_odds_invalid_range.png](evidence/tc06_odds_invalid_range.png).
-
-### BUG-13 - Malformed JSON body returns 500 instead of 400
-
-- **Severity:** Low
-- **Reproduction steps:** `POST /api/place-bet` with header `Content-Type: application/json` and body `{bad`.
-- **Expected:** 400 `invalid_json` "Malformed JSON body." (spec 4.3 and the Swagger example).
-- **Actual:** 500 `internal_server_error`.
-- **Business impact:** Client errors are reported as server failures. This pollutes error-rate monitoring and alerting, and shows an unhandled parsing path.
-- **Evidence:** [api_evidence.txt](evidence/api_evidence.txt).
-
-### BUG-14 - `GET /api/place-bet` returns 200 instead of 405
-
-- **Severity:** Low
-- **Reproduction steps:** `GET /api/place-bet` with a valid `x-user-id`.
-- **Expected:** 405 `method_not_allowed` (spec 4.3), as `PUT` on the same endpoint already does.
-- **Actual:** `200 {}`.
-- **Business impact:** It breaks the API contract and can hide client bugs, because a wrong method looks like success.
-- **Evidence:** [api_evidence.txt](evidence/api_evidence.txt).
-
-### BUG-15 - "Showing N matches" counter ignores active filters
-
-- **Severity:** Low
-- **Reproduction steps:** Apply any odds filter, for example Min `3`, Max `2`, or Min `1.35`, Max `1.45`.
-- **Expected:** The counter shows the number of visible matches.
-- **Actual:** It always shows "Showing 103 matches".
-- **Business impact:** Misleading information, minor UX issue.
-- **Evidence:** [tc06_odds_invalid_range.png](evidence/tc06_odds_invalid_range.png) (0 matches visible, counter says 103).
-
-### BUG-16 - Bet slip hides the available balance while a selection is active
-
-- **Severity:** Low
-- **Reproduction steps:** Click any odds button.
-- **Expected:** The bet slip shows the entered stake, **available balance** and potential payout (spec 2.2).
-- **Actual:** "Balance: €X" is visible only while the slip is empty. Once a selection is added, it disappears from the slip.
-- **Business impact:** The user has to look elsewhere to decide on a stake. Minor UX issue.
-- **Evidence:** [tc01_slip_before_place.png](evidence/tc01_slip_before_place.png) vs [tc01_after_close.png](evidence/tc01_after_close.png).
+| Bug | Severity | Steps | Expected vs actual | Business impact | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| **BUG-11** Odds filter excludes matches whose odds equal the minimum bound | Medium | Odds filter: Min `2.05`, Max `2.05`, Apply. | Bounds are inclusive (spec 2.6), so 10 matches should show. Actual: 0. With `1.35`-`1.45`, PSG vs Marseille (1.35) is missing. | Users filtering for a price miss matching markets. | [tc06_odds_equal_bounds.png](evidence/tc06_odds_equal_bounds.png) |
+| **BUG-12** Odds filter accepts min > max without feedback | Medium | Odds filter: Min `3`, Max `2`, Apply. | Range should be rejected with a message (spec 2.6). Actual: applied, list goes blank, no empty state. | User thinks there are no matches. | [tc06_odds_invalid_range.png](evidence/tc06_odds_invalid_range.png) |
+| **BUG-13** Malformed JSON returns 500 instead of 400 | Low | `POST /api/place-bet` with body `{bad`. | Expected 400 `invalid_json` (spec 4.3). Actual: 500 `internal_server_error`. | Client errors show up as server failures in monitoring. | [api_evidence.txt](evidence/api_evidence.txt) |
+| **BUG-14** `GET /api/place-bet` returns 200 instead of 405 | Low | `GET /api/place-bet` with a valid `x-user-id`. | Expected 405 (spec 4.3), as `PUT` returns. Actual: `200 {}`. | A wrong method looks like success. | [api_evidence.txt](evidence/api_evidence.txt) |
+| **BUG-15** "Showing N matches" ignores active filters | Low | Apply any odds filter. | Counter should match visible matches. Actual: always "Showing 103 matches". | Misleading, minor UX. | [tc06_odds_invalid_range.png](evidence/tc06_odds_invalid_range.png) |
+| **BUG-16** Bet slip hides the balance once a selection is added | Low | Click any odds button. | Slip should show available balance (spec 2.2). Actual: shown only while the slip is empty. | User has to look elsewhere to pick a stake. | [tc01_slip_before_place.png](evidence/tc01_slip_before_place.png) |
