@@ -36,45 +36,27 @@ automation/                     Part B
 
 ## How to run the tests
 
-You need Python 3.10+ and Google Chrome. Chromedriver is downloaded automatically on the first run.
+**Prerequisites**
 
-**1. Clone the repository**
+- Python 3.12
+- Google Chrome
+- Git
+
+**Commands**
 
 ```bash
 git clone https://github.com/sale047/sporty-group-assignment.git
 cd sporty-group-assignment/automation
-```
-
-**2. Create a virtual environment and install dependencies**
-
-```bash
 python3.12 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
+pytest
+open reports/report.html
 ```
-
-**3. Run the tests**
-
-```bash
-pytest                 # all tests, Chrome window is visible
-HEADLESS=1 pytest      # all tests, Chrome runs in the background
-pytest -m api          # API test only
-pytest -m ui           # UI test only
-```
-
-**4. Open the report**
-
-```bash
-open reports/report.html         # Windows: start reports\report.html
-```
-
-Screenshots of failed UI tests are embedded in the report. A report from a run on the current build is also committed as [automation/sample_report.html](automation/sample_report.html). GitHub shows it as source code, so download it and open it in a browser.
-
-Defaults point to the assignment app and user ID. To change them, set `BASE_URL`, `USER_ID`, `UI_TIMEOUT` or `API_TIMEOUT` (see [config/settings.py](automation/config/settings.py)).
 
 ### Expected result on the current build
 
-The run ends with **7 passed, 2 xfailed, 1 failed**. Each non-passing result is caused by a reported product defect, not by a problem in the framework.
+The run ends with **7 passed, 2 xfailed, 1 failed**. Each non-passing result is caused by a reported product defect, not by a problem in the framework. A report from this run is committed as [automation/sample_report.html](automation/sample_report.html) (download it and open it in a browser).
 
 | Test | Result | Reason |
 | --- | --- | --- |
