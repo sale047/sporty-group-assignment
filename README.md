@@ -34,37 +34,43 @@ automation/                     Part B
   pytest.ini                    markers, HTML report, strict xfail
 ```
 
-## Automation setup
+## How to run the tests
 
-**Prerequisites:** Python **3.10+** (developed on 3.12) and the latest desktop Google Chrome. You don't need to install a chromedriver: Selenium Manager downloads a matching one on first run.
+You need Python 3.10+ and Google Chrome. Chromedriver is downloaded automatically on the first run.
+
+**1. Clone the repository**
 
 ```bash
-cd automation
+git clone https://github.com/sale047/sporty-group-assignment.git
+cd sporty-group-assignment/automation
+```
+
+**2. Create a virtual environment and install dependencies**
+
+```bash
 python3.12 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Running the tests
-
-Run every command from the `automation/` directory.
+**3. Run the tests**
 
 ```bash
-pytest                 # both tests (UI opens a visible Chrome window)
-HEADLESS=1 pytest      # headless Chrome
+pytest                 # all tests, Chrome window is visible
+HEADLESS=1 pytest      # all tests, Chrome runs in the background
 pytest -m api          # API test only
-pytest -m ui           # E2E UI test only
+pytest -m ui           # UI test only
 ```
 
-The HTML report is written to `automation/reports/report.html`. When a UI test fails, a screenshot is embedded in the report and saved to `automation/reports/screenshots/`. A report from a run on the current build is committed as [automation/sample_report.html](automation/sample_report.html) (download and open it locally; GitHub shows HTML as source).
+**4. Open the report**
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `BASE_URL` | `https://qae-assignment-tau.vercel.app` | Application under test |
-| `USER_ID` | `candidate-lK0oEBSF2OFO` | Sent as `?user-id=` and the `x-user-id` header |
-| `HEADLESS` | `0` | `1` runs Chrome headless |
-| `UI_TIMEOUT` | `15` | Explicit wait timeout, in seconds |
-| `API_TIMEOUT` | `10` | HTTP timeout, in seconds |
+```bash
+open reports/report.html         # Windows: start reports\report.html
+```
+
+Screenshots of failed UI tests are embedded in the report. A report from a run on the current build is also committed as [automation/sample_report.html](automation/sample_report.html). GitHub shows it as source code, so download it and open it in a browser.
+
+Defaults point to the assignment app and user ID. To change them, set `BASE_URL`, `USER_ID`, `UI_TIMEOUT` or `API_TIMEOUT` (see [config/settings.py](automation/config/settings.py)).
 
 ### Expected result on the current build
 
