@@ -56,7 +56,7 @@ pytest -m api          # API test only
 pytest -m ui           # E2E UI test only
 ```
 
-The HTML report is written to `automation/reports/report.html`. When a UI test fails, a screenshot is embedded in the report and saved to `automation/reports/screenshots/`.
+The HTML report is written to `automation/reports/report.html`. When a UI test fails, a screenshot is embedded in the report and saved to `automation/reports/screenshots/`. A report from a run on the current build is committed as [manual/evidence/sample_report.html](manual/evidence/sample_report.html) (download and open it locally; GitHub shows HTML as source).
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
